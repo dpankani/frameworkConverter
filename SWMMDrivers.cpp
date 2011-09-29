@@ -17,9 +17,11 @@ char* targetFRWPollutants[7];
 char* targetSWMPollutants[7];
 float targetPollutantFactors[7];
 float flowConversionFactor = 0.0;
-int targetPollutantOrder[7];
+int targetPollutantSWMMOrder[7];
+int targetPollutantFRWOrder[7];
 int totalNumOfFRWPollutants = 0;
 int targetNodeIndex = 0;
+
 
 int main(int argc, char* argv[])
 {
@@ -28,10 +30,9 @@ int main(int argc, char* argv[])
 	FILE* timeSeriesOutFile;
 	FILE* metaFile;
 
-	
-	char* binaryFilePath; //= "C:\\TestSwmm.out";
-    char* reportFilePath; //= "C:\\TestSwmm.rpt";
-	char* timeSeriesOutFilePath; //= "C:\\TestSwmm.tst";
+	char* binaryFilePath; 
+    //char* reportFilePath; 
+	char* timeSeriesOutFilePath;
 	char* inputs[20];
 	char* tempToken;
 	char* metaFilePath = "C:\\test.mta";
@@ -77,24 +78,11 @@ int main(int argc, char* argv[])
 		targetPollutantFactors[i] = atof(strtok (NULL, "/"));
 		printf("\nPollutant %d: framework name: %s SWMM name: %s conversion factor: %f",i,targetFRWPollutants[i],targetSWMPollutants[i],targetPollutantFactors[i]);
 	}
-	
 
-   // if (argc > 2) 
-   // {
-        // --- extract file names from command line arguments
-        //binaryFilePath = argv[1];
-        //reportFilePath = argv[2];
-		//binaryFilePath = "C:\\TestSwmm.out";
-		//timeSeriesOutFilePath = "C:\\TestSwmm.tst";
-
-		//reportFile = openAnyFile(reportFilePath, 0);
-		binaryFile = openAnyFile(binaryFilePath, 0);
-		timeSeriesOutFile = openAnyFile(timeSeriesOutFilePath, 1);
-
-		output_open(binaryFile, timeSeriesOutFile, inputs, targetPollutantOrder);
-		//report_Nodes(reportFile, binaryFile);
-	//}
-		//free(inputs);
+	binaryFile = openAnyFile(binaryFilePath, 0);
+	timeSeriesOutFile = openAnyFile(timeSeriesOutFilePath, 1);
+	output_open(binaryFile, timeSeriesOutFile, inputs, targetPollutantSWMMOrder);
+		
 	return 0;
 }
 
@@ -332,7 +320,7 @@ void  writecon(char *s)
    fflush(stdout);
 }
 
-int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantOrder)
+int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -370,7 +358,7 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 	DateTime days;
     char     theDate[20];
     char     theTime[20];
-	char *inputTok[MAXTOKS];             // String tokens from line of input
+	//char *inputTok[MAXTOKS];             // String tokens from line of input
 	
 
     // --- get number of objects reported on                                   //(5.0.014 - LR)
@@ -456,10 +444,13 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 	}
 
 	//Match swmm pollutants to framework pollutants and determine pollutant order - order by framework pollutants
+	k = 0;
 	for(int i = 0; i<totalNumOfFRWPollutants; i++){
 		for (j=0; j<numPolls;   j++){
 			if(strcmp(targetSWMPollutants[i],PollutArr[j].ID) == 0){
-				targetPollutantOrder[i] = j;
+				targetPollutantSWMMOrder[i] = j;
+				targetPollutantFRWOrder[k] = i;
+				k++;
 				break;
 			}
 		}
@@ -515,28 +506,12 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 		fseek(fout, byteOffset, SEEK_CUR);
 	}
 
-	/*// --- skip number & codes of subcatchments / nodes and link result variables
-	//bytePos = ftell(fout);
-	byteOffset = sizeof(INT4)* NUMSUBCATCHVARS + (numPolls) * sizeof(INT4);  //accounts for subcatch props
-	byteOffset += sizeof(INT4)* NUMNODEVARS + (numPolls) * sizeof(INT4); //account for node props
-	byteOffset += sizeof(INT4)* NUMLINKVARS + (numPolls) * sizeof(INT4); //account for node props
-	byteOffset += sizeof(INT4)* MAX_SYS_RESULTS; //account for system vars
-
-	//Skip reporting interval
-	byteOffset += sizeof(REAL4); //account for start date
-	byteOffset += sizeof(INT4); //account for time interval between reporting periods
-	fseek(fout, byteOffset, SEEK_CUR);
-
-	//outputStartPos = ftell(fout);
-	*/
 	//get node results for all time periods
 	fprintf(ftimeSeries, "#%s \n#NodeID:%s\n#\n#",inputs[0], targetNodeID); // write header
 	fprintf(ftimeSeries, "\n#%11s,%8s,%9s","Year,MM,DD","hours","flow"); // write header
 	for (int p = 0; p < totalNumOfFRWPollutants; p++)
-       //fprintf(ftimeSeries, ",%8s%1d","Poll",p );targetFRWPollutants
-		fprintf(ftimeSeries, ",%9s",targetFRWPollutants[targetPollutantOrder[p]]);
-	//k = 0; //used to represent node index
-    //for (int period = 1; period <= 100; period++ )
+		fprintf(ftimeSeries, ",%9s",targetFRWPollutants[targetPollutantFRWOrder[p]]);\
+
 	for (int period = 1; period <= numberOfPeriods; period++ )
     {
         output_readDateTime(period, &days, bytesPerPeriod, fout);
@@ -544,10 +519,9 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
         datetime_timeToStr2(days, theTime);
 		output_readNodeResults(nodeResultsForPeriod, period, targetNodeIndex,numNodeResults,numSubcatchs , numSubcatchResults , OutputStartPos, bytesPerPeriod, fout);                             //(5.0.014 - LR)
 
-		//fprintf(ftimeSeries, "\n  %11s,%8s,%9.3f,%9.3f,%9.3f,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW],nodeResultsForPeriod[NODE_OVERFLOW], nodeResultsForPeriod[NODE_DEPTH],nodeResultsForPeriod[NODE_HEAD]);
-        fprintf(ftimeSeries, "\n %11s,%8s,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW]);
+		fprintf(ftimeSeries, "\n %11s,%8s,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW]);
 		for (int p = 0; p < totalNumOfFRWPollutants; p++)
-            fprintf(ftimeSeries, ",%9.3f", nodeResultsForPeriod[NODE_QUAL + p] * targetPollutantFactors[p]);
+            fprintf(ftimeSeries, ",%9.3f", nodeResultsForPeriod[NODE_QUAL + targetPollutantSWMMOrder[p]] * targetPollutantFactors[p]);
     }
     
 	free(nodeResultsForPeriod);
