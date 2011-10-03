@@ -223,7 +223,7 @@ typedef double DateTime;
 #define TIME_STR_SIZE 9
 
 //datetime.c
-static int DateFormat;
+static int DateFormat = 0;
 
 //-----------------------------------------------------------------------------
 //  Constants
@@ -249,7 +249,7 @@ static const double SecsPerDay = 86400.;    // seconds per day
 void report_Nodes(FILE* frpt, FILE* fout);
 void report_writeLine(char *line, FILE* frpt);
 //void output_readDateTime(int period, DateTime* days, FILE* fout);
-void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout);
+void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout, int outputStartPos);
 void datetime_dateToStr2(DateTime date, char* outResultStr, int format);
 void datetime_timeToStr2(DateTime time, char* s);
 void output_readNodeResults(int period, int index, FILE* fout);
@@ -264,3 +264,7 @@ float* output_readNodeResults(float* results, int period, int nodeIndex, int num
 int input_readData2(FILE* finp, char* inputs[20]);
 int  getTokens2(char *s, char** outToks);
 char* trimwhitespace(char *str);
+
+// Functions for converting a DateTime value to a string
+void datetime_dateToStr(DateTime date, char* s);
+void datetime_timeToStr(DateTime time, char* s);

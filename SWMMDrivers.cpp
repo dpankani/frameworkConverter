@@ -21,7 +21,9 @@ int targetPollutantSWMMOrder[7];
 int targetPollutantFRWOrder[7];
 int totalNumOfFRWPollutants = 0;
 int targetNodeIndex = 0;
-
+REAL8 reportStartDate = 0.0;
+INT4 reportTimeInterv = 0;
+DateTime StartDateTime;
 
 int main(int argc, char* argv[])
 {
@@ -100,14 +102,14 @@ void report_writeLine(char *line, FILE* frpt)
 
 //=============================================================================
 
-void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout)
+void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout, int outputStartPos)
 //  Input:   period = index of reporting time period
 //  Output:  days = date/time value
 //  Purpose: retrieves the date/time for a specific reporting period
 //           from the binary output file.
 //
 {
-    INT4 bytePos = OutputStartPos + (period-1)*bytesPerPeriod;
+    INT4 bytePos = outputStartPos + (period-1)*bytesPerPeriod;
     fseek(fout, bytePos, SEEK_SET);
     *days = NO_DATE;
     fread(days, sizeof(REAL8), 1, fout);
@@ -331,19 +333,14 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
     int   j = 0;
     int   m = 0;
     INT4  k = 0;
-	//int period = 0;
 	int numberOfPeriods = 0;
 	int dateTimeFormat = 0; //
 
 	INT4  numProperities = 0;
-	//int outputStartPos = 0;
 	const int NUMSUBCATCHVARS = 7; //includes NsubcatchResults,SUBCATCH_RAINFALL,SUBCATCH_SNOWDEPTH,SUBCATCH_LOSSES,SUBCATCH_RUNOFF,SUBCATCH_GW_FLOW,SUBCATCH_GW_ELEV;
 	const int NUMNODEVARS = 7; //NnodeResults,NODE_DEPTH,NODE_HEAD,NODE_VOLUME,NODE_LATFLOW,NODE_INFLO,NODE_OVERFLOW;
 	const int NUMLINKVARS = 6; //NlinkResults,LINK_FLOW,LINK_DEPTH,LINK_VELOCITY,LINK_FROUDE,LINK_CAPACITY;
 
-
-    //REAL4 x = 0;
-    //REAL8 z = 0;
 	INT4 bytePos;
 	INT4 magicNum = 0;
 	INT4 flowUnits;
@@ -358,8 +355,6 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 	DateTime days;
     char     theDate[20];
     char     theTime[20];
-	//char *inputTok[MAXTOKS];             // String tokens from line of input
-	
 
     // --- get number of objects reported on                                   //(5.0.014 - LR)
     NumSubcatch = 0;
@@ -434,7 +429,6 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 		fread(tempID, sizeof(char), numCharsInID, fout); 
     }
 
-
 	//Read pollutant ids
 	for (j=0; j<numPolls;   j++){
 		fread(&numCharsInID, sizeof(INT4), 1, fout);
@@ -506,20 +500,34 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 		fseek(fout, byteOffset, SEEK_CUR);
 	}
 
+	//Get Start date and reporting timestep
+	fseek(fout, OutputStartPos -(sizeof(REAL8) + sizeof(INT4)), SEEK_SET);
+	fread(&reportStartDate,  sizeof(REAL8), 1, fout);
+	//StartDateTime  = getDateTime(reportStartDate);
+    fread(&reportTimeInterv,  sizeof(INT4), 1, fout);
+
+
+
 	//get node results for all time periods
 	fprintf(ftimeSeries, "#%s \n#NodeID:%s\n#\n#",inputs[0], targetNodeID); // write header
 	fprintf(ftimeSeries, "\n#%11s,%8s,%9s","Year,MM,DD","hours","flow"); // write header
 	for (int p = 0; p < totalNumOfFRWPollutants; p++)
 		fprintf(ftimeSeries, ",%9s",targetFRWPollutants[targetPollutantFRWOrder[p]]);\
 
+	/*fseek(fout, 248266, SEEK_SET);
+    days = 1000;
+    fread(&days, sizeof(REAL8), 1, fout);*/
 	for (int period = 1; period <= numberOfPeriods; period++ )
     {
-        output_readDateTime(period, &days, bytesPerPeriod, fout);
+        //output_readDateTime(period, &days, bytesPerPeriod, fout, OutputStartPos);
+		//fprintf(ftimeSeries,"\n dateTime %ld",days);
+		days = reportStartDate + (reportTimeInterv * period/86400.0);
         datetime_dateToStr2(days, theDate, dateTimeFormat);
         datetime_timeToStr2(days, theTime);
 		output_readNodeResults(nodeResultsForPeriod, period, targetNodeIndex,numNodeResults,numSubcatchs , numSubcatchResults , OutputStartPos, bytesPerPeriod, fout);                             //(5.0.014 - LR)
 
-		fprintf(ftimeSeries, "\n %11s,%8s,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW]);
+		//fprintf(ftimeSeries, " %ld, %11s,%8s,%9.3f",days,theDate, theTime, nodeResultsForPeriod[NODE_INFLOW] * flowConversionFactor);
+		fprintf(ftimeSeries, "\n %11s,%8s,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW] * flowConversionFactor);
 		for (int p = 0; p < totalNumOfFRWPollutants; p++)
             fprintf(ftimeSeries, ",%9.3f", nodeResultsForPeriod[NODE_QUAL + targetPollutantSWMMOrder[p]] * targetPollutantFactors[p]);
     }
@@ -643,8 +651,6 @@ int  getTokens2(char *s, char** outToks)
 }
 
 
-
-
 //http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
 char* trimwhitespace(char *str)
 {
@@ -664,4 +670,48 @@ char* trimwhitespace(char *str)
   *(end+1) = 0;
   
   return str;
+}
+
+
+
+void datetime_dateToStr(DateTime date, char* s)
+
+//  Input:   date = encoded date/time value
+//  Output:  s = formatted date string
+//  Purpose: represents DateTime date value as a formatted string.
+
+{
+    int  y, m, d;
+    char dateStr[DATE_STR_SIZE];
+    datetime_decodeDate(date, &y, &m, &d);
+    switch (DateFormat)
+    {
+      case Y_M_D:
+        sprintf(dateStr, "%4d-%3s-%02d", y, MonthTxt[m-1], d);
+        break;
+
+      case M_D_Y:
+        sprintf(dateStr, "%3s-%02d-%4d", MonthTxt[m-1], d, y);
+        break;
+
+      default:
+        sprintf(dateStr, "%02d-%3s-%4d", d, MonthTxt[m-1], y);
+    }
+    strcpy(s, dateStr);
+}
+
+//=============================================================================
+
+void datetime_timeToStr(DateTime time, char* s)
+
+//  Input:   time = decimal fraction of a day
+//  Output:  s = time in hr:min:sec format
+//  Purpose: represents DateTime time value as a formatted string.
+
+{
+    int  hr, min, sec;
+    char timeStr[TIME_STR_SIZE];
+    datetime_decodeTime(time, &hr, &min, &sec);
+    sprintf(timeStr, "%02d:%02d:%02d", hr, min, sec);
+    strcpy(s, timeStr);
 }
