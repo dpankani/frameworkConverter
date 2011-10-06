@@ -20,6 +20,7 @@ float flowConversionFactor = 0.0;
 int targetPollutantSWMMOrder[7];
 int targetPollutantFRWOrder[7];
 int totalNumOfFRWPollutants = 0;
+int totalNumOfMatchedFRWPollutants = 0;
 int targetNodeIndex = 0;
 REAL8 reportStartDate = 0.0;
 INT4 reportTimeInterv = 0;
@@ -389,15 +390,27 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
         + MAX_SYS_RESULTS * sizeof(REAL4);
 
 	
-		//Skip catchment IDs
+	/*	//Skip catchment IDs
 	bytePos = ftell(fout);
 	byteOffset = (numSubcatchs) * sizeof(INT4);
-    fseek(fout, byteOffset, SEEK_CUR);
+    fseek(fout, byteOffset, SEEK_CUR);*/
 
+	//Create an array of Nodes to hold node info
+	TSubcatch* SubcatchArr = (TSubcatch*)malloc(sizeof(TSubcatch) * numSubcatchs);
 	//Create an array of Nodes to hold node info
 	TNode* NodeArr = (TNode*)malloc(sizeof(TNode) * numNodes);
 	//Create an array of Pollutants to hold pollutant info
 	TPollut* PollutArr = (TPollut*)malloc(sizeof(TPollut) * numPolls);
+
+	//Read all subcatchment IDs
+	for (j=0; j<numSubcatchs; j++)
+    {
+		fread(&numCharsInID, sizeof(INT4), 1, fout);
+		tempID = (char*) calloc (numCharsInID,sizeof(char)+1);
+		fread(tempID, sizeof(char), numCharsInID, fout);
+		SubcatchArr[j].ID = tempID; 
+    }
+
 
 	//Read all node IDs
 	for (j=0; j<numNodes; j++)
@@ -449,6 +462,8 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 			}
 		}
 	}
+	totalNumOfMatchedFRWPollutants = k;
+
 	// --- save codes of pollutant concentration units
     for (j=0; j<numPolls; j++){
         fread(&k, sizeof(INT4), 1, fout);
@@ -511,24 +526,18 @@ int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollut
 	//get node results for all time periods
 	fprintf(ftimeSeries, "#%s \n#NodeID:%s\n#\n#",inputs[0], targetNodeID); // write header
 	fprintf(ftimeSeries, "\n#%11s,%8s,%9s","Year,MM,DD","hours","flow"); // write header
-	for (int p = 0; p < totalNumOfFRWPollutants; p++)
+	for (int p = 0; p < totalNumOfMatchedFRWPollutants; p++)
 		fprintf(ftimeSeries, ",%9s",targetFRWPollutants[targetPollutantFRWOrder[p]]);\
 
-	/*fseek(fout, 248266, SEEK_SET);
-    days = 1000;
-    fread(&days, sizeof(REAL8), 1, fout);*/
 	for (int period = 1; period <= numberOfPeriods; period++ )
     {
-        //output_readDateTime(period, &days, bytesPerPeriod, fout, OutputStartPos);
-		//fprintf(ftimeSeries,"\n dateTime %ld",days);
 		days = reportStartDate + (reportTimeInterv * period/86400.0);
         datetime_dateToStr2(days, theDate, dateTimeFormat);
         datetime_timeToStr2(days, theTime);
 		output_readNodeResults(nodeResultsForPeriod, period, targetNodeIndex,numNodeResults,numSubcatchs , numSubcatchResults , OutputStartPos, bytesPerPeriod, fout);                             //(5.0.014 - LR)
 
-		//fprintf(ftimeSeries, " %ld, %11s,%8s,%9.3f",days,theDate, theTime, nodeResultsForPeriod[NODE_INFLOW] * flowConversionFactor);
 		fprintf(ftimeSeries, "\n %11s,%8s,%9.3f",theDate, theTime, nodeResultsForPeriod[NODE_INFLOW] * flowConversionFactor);
-		for (int p = 0; p < totalNumOfFRWPollutants; p++)
+		for (int p = 0; p < totalNumOfMatchedFRWPollutants; p++)
             fprintf(ftimeSeries, ",%9.3f", nodeResultsForPeriod[NODE_QUAL + targetPollutantSWMMOrder[p]] * targetPollutantFactors[p]);
     }
     

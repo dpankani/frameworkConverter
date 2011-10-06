@@ -145,7 +145,41 @@ typedef struct
 }  TNode;
 
 
+//--------------------
+// SUBCATCHMENT OBJECT
+//--------------------
+typedef struct
+{
+   char*         ID;              // subcatchment name
+   char          rptFlag;         // reporting flag
+   int           gage;            // raingage index
+   int           outNode;         // outlet node index
+   int           outSubcatch;     // outlet subcatchment index
+   int           infil;           // infiltration object index
+   //TSubarea      subArea[3];      // sub-area data
+   double        width;           // overland flow width (ft)
+   double        area;            // area (ft2)
+   double        fracImperv;      // fraction impervious
+   double        slope;           // slope (ft/ft)
+   double        curbLength;      // total curb length (ft)
+   double*       initBuildup;     // initial pollutant buildup (mass/ft2)
+   //TLandFactor*  landFactor;      // array of land use factors
+   //TGroundwater* groundwater;     // associated groundwater data
+   //TSnowpack*    snowpack;        // associated snow pack data
 
+   double        lidArea;         // area devoted to LIDs (ft2)                //(5.0.019 - LR)
+   double        rainfall;        // current rainfall (ft/sec)
+   double        losses;          // current infil + evap losses (ft/sec)
+   double        runon;           // runon from other subcatchments (cfs)
+   double        oldRunoff;       // previous runoff (cfs)
+   double        newRunoff;       // current runoff (cfs)
+   double        oldSnowDepth;    // previous snow depth (ft)
+   double        newSnowDepth;    // current snow depth (ft)
+   double*       oldQual;         // previous runoff quality (mass/L)
+   double*       newQual;         // current runoff quality (mass/L)
+   double*       pondedQual;      // ponded surface water quality (mass/ft3)
+   double*       totalLoad;       // total washoff load (lbs or kg)
+}  TSubcatch;
 
 
 
