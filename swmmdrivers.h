@@ -227,6 +227,15 @@ typedef struct
 #define INT4  int
 #define REAL4 float
 #define REAL8 double
+
+
+ //---------------------------------------------------
+// Minimum depth for reporting non-zero water quality
+//---------------------------------------------------
+#define   MIN_WQ_DEPTH  0.01     // ft (= 3 mm)
+#define   MIN_WQ_FLOW   0.001    // cfs
+
+
 //-----------------------------------------------------------------------------
 //  Shared variables    
 //-----------------------------------------------------------------------------
@@ -240,7 +249,7 @@ static INT4      NlinkResults;         // number of link output variables
 static INT4      NumSubcatch;          // number of subcatchments reported on  //(5.0.014 - LR)
 static INT4      NumNodes;             // number of nodes reported on          //(5.0.014 - LR)
 static INT4      NumLinks;             // number of links reported on          //(5.0.014 - LR)
-static INT4      NumPolls;             //dp added number of links reported on          //(5.0.014 - LR)
+static INT4      NumPolls;             //dp added number of links reported on  //(5.0.014 - LR)
 
 //static REAL4     SysResults[MAX_SYS_RESULTS];    // values of system output vars.
 
@@ -282,7 +291,6 @@ static const double SecsPerDay = 86400.;    // seconds per day
 
 void report_Nodes(FILE* frpt, FILE* fout);
 void report_writeLine(char *line, FILE* frpt);
-//void output_readDateTime(int period, DateTime* days, FILE* fout);
 void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout, int outputStartPos);
 void datetime_dateToStr2(DateTime date, char* outResultStr, int format);
 void datetime_timeToStr2(DateTime time, char* s);

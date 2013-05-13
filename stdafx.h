@@ -7,7 +7,7 @@
 
 #include "targetver.h"
 #include "swmmdrivers.h"
-#include "error.h"
+#include "errno.h"
 #include <tchar.h>
 #include <string.h>
 #include <math.h>

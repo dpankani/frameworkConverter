@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
+    <None Include="swmmconverterdefaults.mta" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -38,5 +39,8 @@
     <ClCompile Include="SWMMDrivers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="swmmconvertstring.txt" />
   </ItemGroup>
 </Project>
