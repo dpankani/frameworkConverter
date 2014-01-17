@@ -58,6 +58,7 @@ REAL8 reportStartDate = 0.0;
 INT4 reportTimeInterv = 0;
 DateTime StartDateTime;
 
+
 int main()
 //int main(int argc, char* argv[])
 //  Input:   one commandline argument representing the path to the control file
@@ -90,6 +91,7 @@ int main()
 //        metaFilePath = argv[1];
 
 	//1.) open, access and read control file for location of input series -------------------
+	printf("\nSWMM Converter Version 1.0.20130513");
 	printf("\nOpening control file: %s ",controlFilePath);
 	controlFile = openAnyFile(controlFilePath, 0);
 
@@ -145,22 +147,26 @@ int main()
 	metaFileData = output_open(controlFile, binaryFile, timeSeriesOutFile, inputs, targetPollutantSWMMOrder);
 
 	//6.) create the return metadata file
-	if(metaFileData.returnresult==0){ 
-		controlFile=openAnyFile(controlFilePath, 1);
+	if(metaFileData.returnresult == 0){ 
+		controlFile = openAnyFile(controlFilePath, 1);
 		fputs(binaryFilePath,controlFile);fputs("\n",controlFile);
 		fputs(targetNodeID,controlFile);fputs("\n",controlFile);
+
 		metaFileData.timeStep/=3600.0;
+		
 		sprintf(line, "%5.3f", metaFileData.timeStep);fputs(line, controlFile);fputs("\n",controlFile);
 		fputs("2",controlFile);fputs("\n",controlFile);
 		fputs("Converted from SWMM 5",controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.fyear);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.fmonth);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.fday);fputs(line, controlFile);fputs("\n",controlFile);
+		
 		metaFileData.fhour/=3600.0;
 		sprintf(line,  "%5.3f", metaFileData.fhour);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.tyear);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.tmonth);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.tday);fputs(line, controlFile);fputs("\n",controlFile);
+		
 		metaFileData.thour/=3600.0;
 		sprintf(line,  "%5.3f", metaFileData.thour);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.numread);fputs(line, controlFile);fputs("\n",controlFile);
@@ -572,12 +578,12 @@ SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** 
 		PollutArr[j].units = k;
     }
 
-	for (j=0; j<numPolls;   j++){
+	/*for (j=0; j<numPolls;   j++){
 		fread(&numCharsInID, sizeof(INT4), 1, fout);
 		tempID = (char*) calloc (numCharsInID,sizeof(char)+1);
 		fread(tempID, sizeof(char), numCharsInID, fout);
 		PollutArr[j].ID = tempID; 
-	}
+	}*/
 	//-------------------------------------------------------------------------------
 
     // --- skip subcatchment area and associated codes
@@ -801,7 +807,7 @@ int  getTokens2(char *s, char** outToks)
 }
 
 
-//Adapted from http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
+
 char* trimwhitespace(char *str)
 {
   char *end;
@@ -864,4 +870,39 @@ void datetime_timeToStr(DateTime time, char* s)
     datetime_decodeTime(time, &hr, &min, &sec);
     sprintf(timeStr, "%02d:%02d:%02d", hr, min, sec);
     strcpy(s, timeStr);
+}
+
+//==BEGIN SWMM INPUT FILE ROUTINES==============================================
+
+
+
+void write_inflow_block(FILE* swmmInputFile, int totalNumOfFRWPollutants, char *targetNodeID, char** targetFRWPollutants, char **targetSWMPollutants, char **targetPollutantFactors){
+	char* buffer;
+	char* tsParam;
+	char* tsNameSuffix = "_TimeSeries";
+	char tsName[32];
+
+	WRITE("\n[INFLOWS]", swmmInputFile);
+	WRITE("\n;;                                                 Param    Units    Scale    Baseline Baseline", swmmInputFile);
+	WRITE("\n;;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern", swmmInputFile);
+	WRITE("\n;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------", swmmInputFile);
+	for(int i = 0; i<totalNumOfFRWPollutants;i++){
+		tsParam = get_timeseriesProperties(1, targetFRWPollutants[i]);
+		sprintf(tsName, "%s%s", targetSWMPollutants[i], tsNameSuffix);
+		buffer = format_inflow_blockline(targetNodeID, targetSWMPollutants[i], tsName, tsParam, 1.0, atof(targetPollutantFactors[i])); 
+		//WRITE(buffer, swmmInputFile);
+	}
+}
+
+char* format_inflow_blockline(char *nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor){
+	char buffer [50];
+	sprintf(buffer, "\n%s        %s             %s         %s     %6.6f      %6.6f                               ",nodeName, tsType, tsName, tsParam, tsUnitsFactor, tsScaleFactor); 
+	return buffer;
+}
+
+//1 - Parameter Name code in SWMM
+char* get_timeseriesProperties(int propertyType, char* frameworkTSName){
+	if(propertyType == 1){
+		if(strcmp("FLOW", frameworkTSName)) return "FLOW";
+	}
 }

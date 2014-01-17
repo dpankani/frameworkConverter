@@ -288,6 +288,10 @@ static const double SecsPerDay = 86400.;    // seconds per day
 #define FMT13  "\n    Cannot open report file "
 #define FMT14  "\n    Cannot open output file "
 
+void write_inflow_block(FILE* swmminputfile);
+void write_inflow_block(FILE* swmminputfile, char **nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor);
+char* format_inflow_blockline(char *nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor);
+char* get_timeseriesProperties(int propertyType, char* frameworkTSName);
 
 void report_Nodes(FILE* frpt, FILE* fout);
 void report_writeLine(char *line, FILE* frpt);
@@ -306,6 +310,7 @@ float* output_readNodeResults(float* results, int period, int nodeIndex, int num
 int input_readData2(FILE* finp, char* inputs[20]);
 int  getTokens2(char *s, char** outToks);
 char* trimwhitespace(char *str);
+int swmm_open(char* f1, char* f2, char* f3);
 
 // Functions for converting a DateTime value to a string
 void datetime_dateToStr(DateTime date, char* s);

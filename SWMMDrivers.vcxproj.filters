@@ -28,9 +28,6 @@
     <ClInclude Include="swmmdrivers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\Local\CODE\SWMM\swmm50022_engine\source5-0-022\error.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

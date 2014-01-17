@@ -1,0 +1,14 @@
+C:\SWMMExtract04162012\SWMMModel\xRockCreekDemo.out
+Outfall
+0.250
+2
+Converted from SWMM 5
+1948
+8
+1
+0.250
+2011
+10
+4
+6.000
+2215128
