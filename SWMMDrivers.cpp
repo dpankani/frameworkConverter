@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include "errno.h"
 #include <ctype.h>
+#include <iostream>
 #include <string>
 #include <Windows.h>
 
@@ -34,7 +35,22 @@ struct SWMMMetaData {
 	double timeStep;
 };
 
-SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder);
+struct FrameworkTS {
+	char* name;
+    char* description;
+	char* filePath;
+    int startMonth;
+	int startDay;
+	int startHour;
+	int endMonth;
+	int endDay;
+	int endHour;
+	char* frameworkConstituent;
+	char* swmmConstituent;
+	char* units;
+	double toFrameworkConversion;
+};
+SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants);
 
 SWMMMetaData metaFileData;
 
@@ -47,11 +63,11 @@ char* targetNodeID;
 char* targetPollutants[7];
 char* targetFRWPollutants[7];
 char* targetSWMPollutants[7];
-float targetPollutantFactors[7];
-float flowConversionFactor = 0.0;
+double targetPollutantFactors[7];
+double flowConversionFactor = 0.0;
 int targetPollutantSWMMOrder[7];
 int targetPollutantFRWOrder[7];
-int totalNumOfFRWPollutants = 0;
+
 int totalNumOfMatchedFRWPollutants = 0;
 int targetNodeIndex = 0;
 REAL8 reportStartDate = 0.0;
@@ -66,22 +82,26 @@ int main()
 //  Purpose: This function is the entry point for the component of the framework that extracts timeseries from SWMM5 output.
 //
 {
-    FILE* reportFile;
+    //FILE* reportFile;
     FILE* binaryFile;
 	FILE* timeSeriesOutFile;
 	FILE* metaFile;
 	FILE* controlFile;
+	FILE* nodeInflowTSFile;
+	//FILE* swmmInputFile;
 
 	char* binaryFilePath; 
 	char* timeSeriesOutFilePath;
 	char* inputs[20];
-	char* returnvalues[20];
+	//char* returnvalues[20];
 	char* tempToken;
     char* controlFilePath = ".\\swmmconvertstring.txt";
 	char* metaFilePath = ".\\swmmconverterdefaults.mta";
+	char* tsFilePath = ".\\nodeInflowTS.txt";
 
 	char line[40];
-	double thisTime;
+	//double thisTime;
+	int totalNumOfFRWPollutants = 0;
 
 	//	if ( argc != 2 ){ 
 //        printf( "\nUsage: SwmmDrivers.exe \"MetafilePath\"");
@@ -144,7 +164,7 @@ int main()
 	timeSeriesOutFile = openAnyFile(timeSeriesOutFilePath, 1);
 
 	//5.) do conversion of series (read series from SWMM, write it to scratch file)
-	metaFileData = output_open(controlFile, binaryFile, timeSeriesOutFile, inputs, targetPollutantSWMMOrder);
+	metaFileData = output_open(controlFile, binaryFile, timeSeriesOutFile, inputs, targetPollutantSWMMOrder, totalNumOfFRWPollutants);
 
 	//6.) create the return metadata file
 	if(metaFileData.returnresult == 0){ 
@@ -171,10 +191,25 @@ int main()
 		sprintf(line,  "%5.3f", metaFileData.thour);fputs(line, controlFile);fputs("\n",controlFile);
 		sprintf(line, "%d", metaFileData.numread);fputs(line, controlFile);fputs("\n",controlFile);
 		fclose(controlFile);
-	   return 0;   //888
+	   //return 0;   //888
 	} else {
-	   return 1;
+	   //return 1;
 	}
+
+	//7.) Write node inflow Timeseries file to disc
+	
+	nodeInflowTSFile = openAnyFile(tsFilePath, 1);
+	//swmmInputFile = openAnyFile(tsFilePath, 1);
+	nodeInflowTSFile = fopen(tsFilePath, "wt");
+    if ( nodeInflowTSFile == NULL ){
+        return 1;
+    }
+
+    if(write_inflow_block(totalNumOfFRWPollutants, targetNodeID, targetFRWPollutants, targetSWMPollutants, targetPollutantFactors, nodeInflowTSFile)){
+		  //do nothing
+	}
+	 fclose(nodeInflowTSFile);
+	return 1;
 }
 
 
@@ -241,7 +276,7 @@ void datetime_timeToStr2(DateTime time, char* s)
 {
     int  hr, min, sec;
     char timeStr[TIME_STR_SIZE];
-	float timeDecimal = 0.0;
+	double timeDecimal = 0.0;
     datetime_decodeTime(time, &hr, &min, &sec);
     //sprintf(timeStr, "%02d,%10f", hr, (min/60 +  sec/3600));
 	//timeDecimal = min/60.0 + sec/3600.0;
@@ -410,7 +445,7 @@ void  writecon(char *s)
    fflush(stdout);
 }
 
-SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder)
+SWMMMetaData output_open(FILE* fcontrol, FILE* fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -488,7 +523,6 @@ SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** 
 	int numlinkResults = MAX_LINK_RESULTS - 1 + numPolls;
 	REAL4* nodeResultsForPeriod= (REAL4 *) calloc(numNodeResults, sizeof(REAL4)); // same as swmms NodeResults var
 	
-
 	int bytesPerPeriod = sizeof(REAL8)                                             //(5.0.014 - LR)
         + numSubcatchs * numSubcatchResults * sizeof(REAL4)                       //(5.0.014 - LR)
         + numNodes * numNodeResults * sizeof(REAL4)                              //(5.0.014 - LR)
@@ -722,7 +756,7 @@ int input_readData2(FILE* finp, char* inputs[20])
 {
     char  line[MAXLINE+1];        // line from input data file
     char  wLine[MAXLINE+1];       // working copy of input line
-    char* comment;                // ptr. to start of comment in input line
+    //char* comment;                // ptr. to start of comment in input line
     //int   sect, newsect;          // data sections
     int   errsum;         // error code & total error count
     //int   lineLength;             // number of characters in input line
@@ -876,33 +910,68 @@ void datetime_timeToStr(DateTime time, char* s)
 
 
 
-void write_inflow_block(FILE* swmmInputFile, int totalNumOfFRWPollutants, char *targetNodeID, char** targetFRWPollutants, char **targetSWMPollutants, char **targetPollutantFactors){
-	char* buffer;
+int write_inflow_block(int totalNumOfFRWPollutants, char* targetNodeID, char** targetFRWPollutants, char** targetSWMPollutants, double* targetPollutantFactors, FILE* swmmInputFile){
+	char buffer [150];
 	char* tsParam;
 	char* tsNameSuffix = "_TimeSeries";
 	char tsName[32];
 
+	/*printf("\nTotal number of pollutants: %d ",totalNumOfFRWPollutants);
+	printf("\nTotal number of pollutants: %s ",targetNodeID);
+	printf("\n1st target framework pollutant: %s ",targetFRWPollutants[0]);
+	printf("\n1st target swmm pollutant: %s ",targetSWMPollutants[0]);
+	printf("\n1st target pollutant factor: %f ",targetPollutantFactors[0]);*/
+
 	WRITE("\n[INFLOWS]", swmmInputFile);
-	WRITE("\n;;                                                 Param    Units    Scale    Baseline Baseline", swmmInputFile);
-	WRITE("\n;;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern", swmmInputFile);
-	WRITE("\n;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------", swmmInputFile);
+	WRITE(";;                                                Param    Units    Scale    Baseline Baseline", swmmInputFile);
+	WRITE(";;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern", swmmInputFile);
+	WRITE(";;-------------- ---------------- ---------------- -------- -------- -------- -------- --------", swmmInputFile);
 	for(int i = 0; i<totalNumOfFRWPollutants;i++){
-		tsParam = get_timeseriesProperties(1, targetFRWPollutants[i]);
-		sprintf(tsName, "%s%s", targetSWMPollutants[i], tsNameSuffix);
-		buffer = format_inflow_blockline(targetNodeID, targetSWMPollutants[i], tsName, tsParam, 1.0, atof(targetPollutantFactors[i])); 
-		//WRITE(buffer, swmmInputFile);
+		tsParam = get_timeseriesProperties(1, targetFRWPollutants[i]); 
+		sprintf(buffer, "%s        %s             %s%s         %s     %6.6f      %6.6f",targetNodeID, targetSWMPollutants[i], targetSWMPollutants[i], tsNameSuffix, tsParam, 1.0, targetPollutantFactors[i]);
+		printf("%s", buffer);
+		WRITE(buffer, swmmInputFile);
 	}
+	return 1;
 }
 
-char* format_inflow_blockline(char *nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor){
-	char buffer [50];
-	sprintf(buffer, "\n%s        %s             %s         %s     %6.6f      %6.6f                               ",nodeName, tsType, tsName, tsParam, tsUnitsFactor, tsScaleFactor); 
-	return buffer;
-}
 
 //1 - Parameter Name code in SWMM
 char* get_timeseriesProperties(int propertyType, char* frameworkTSName){
 	if(propertyType == 1){
-		if(strcmp("FLOW", frameworkTSName)) return "FLOW";
+		if(strcmp("FLOW", frameworkTSName)) 
+			return "FLOW";
+		else
+			return "CONCEN";
 	}
+	return "";
+}
+
+//write TIMESERIES block in swmm file
+//TODO: 1 - TS block already exists and does not have TS we are about to write, append?
+//TODO: 2 - TS block already exists and already includes TS we are about to write, replace?
+int write_ts_block(FrameworkTS* tsArray){
+	char buffer [150];
+	char* tsParam;
+	char* tsNameSuffix = "_TimeSeries";
+	char tsName[32];
+	int numberOfTS = sizeof(tsArray)/sizeof(tsArray[0]);
+
+	/*printf("\nTotal number of pollutants: %d ",totalNumOfFRWPollutants);
+	printf("\nTotal number of pollutants: %s ",targetNodeID);
+	printf("\n1st target framework pollutant: %s ",targetFRWPollutants[0]);
+	printf("\n1st target swmm pollutant: %s ",targetSWMPollutants[0]);
+	printf("\n1st target pollutant factor: %f ",targetPollutantFactors[0]);*/
+
+	if(!hasTSBlock){
+		WRITE("[TIMESERIES]", swmmInputFile);
+		WRITE(";;Name           Date       Time       Value     ", swmmInputFile);
+		WRITE(";;-------------- ---------- ---------- ----------", swmmInputFile);
+	}
+	for(int i = 0; i<numberOfTS;i++){ 
+		sprintf(buffer, "%s      FILE \"%s\"",tsArray[i].name, tsArray[i].filePath);
+		printf("%s", buffer);
+		WRITE(buffer, swmmInputFile);
+	}
+	return 1;
 }

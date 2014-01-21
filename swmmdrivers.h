@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+
 #define WRITE(x, y) (report_writeLine((x),y))    //From report.c
 #define MAXFNAME           259            // Max. # characters in file name ///// Taken from consts.h line 25
 #define MAXTOKS 40
@@ -288,12 +289,10 @@ static const double SecsPerDay = 86400.;    // seconds per day
 #define FMT13  "\n    Cannot open report file "
 #define FMT14  "\n    Cannot open output file "
 
-void write_inflow_block(FILE* swmminputfile);
-void write_inflow_block(FILE* swmminputfile, char **nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor);
-char* format_inflow_blockline(char *nodeName, char *tsType, char *tsName, char *tsParam, float tsUnitsFactor, float tsScaleFactor);
+int write_inflow_block(int totalNumOfFRWPollutants, char* targetNodeID, char** targetFRWPollutants, char** targetSWMPollutants, double* targetPollutantFactors, FILE* swmmInputFile);
 char* get_timeseriesProperties(int propertyType, char* frameworkTSName);
 
-void report_Nodes(FILE* frpt, FILE* fout);
+//void report_Nodes(FILE* frpt, FILE* fout);
 void report_writeLine(char *line, FILE* frpt);
 void output_readDateTime(int period, DateTime* days, int bytesPerPeriod, FILE* fout, int outputStartPos);
 void datetime_dateToStr2(DateTime date, char* outResultStr, int format);

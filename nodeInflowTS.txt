@@ -1,0 +1,8 @@
+
+  
+[INFLOWS]
+  ;;                                                Param    Units    Scale    Baseline Baseline
+  ;;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern
+  ;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+  Creek2        TSS             TSS_TimeSeries         FLOW     1.000000      1.230000
+  Creek2        TP             TP_TimeSeries         FLOW     1.000000      2.360000
