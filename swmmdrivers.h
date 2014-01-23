@@ -2,11 +2,10 @@
 
 
 #define WRITE(x, y) (report_writeLine((x),y))    //From report.c
-#define MAXFNAME           259            // Max. # characters in file name ///// Taken from consts.h line 25
-#define MAXTOKS 40
-#define MAXLINE            1024           // Max. # characters per input line
-#define TRUE  1           // Value for TRUE state // from consts.h
-
+#define MAXFNAME        259         // Max. # characters in file name ///// Taken from consts.h line 25
+#define MAXTOKS			40
+#define MAXLINE         1024        // Max. # characters per input line
+#define TRUE			1           // Value for TRUE state // from consts.h
 
 //---------------------------
 // Token separator characters
@@ -289,6 +288,41 @@ static const double SecsPerDay = 86400.;    // seconds per day
 #define FMT13  "\n    Cannot open report file "
 #define FMT14  "\n    Cannot open output file "
 
+
+//SWMM Driver Data Structures
+struct SWMMMetaData {
+	int returnresult;
+    int fyear;
+    int fmonth;
+	int fday;
+	double fhour;
+	int tyear;
+	int tmonth;
+	int tday;
+	double thour;
+	int numread;
+	double timeStep;
+};
+
+struct FrameworkTS {
+	char name[MAXLINE];				// time series name
+    char description[MAXLINE]; 		// time series description	
+	char filePath[MAXFNAME+1]; 
+	char frameworkConstituent[MAXLINE];
+	char swmmConstituent[MAXLINE];
+	char units[MAXLINE];
+    int startMonth;
+	int startDay;
+	int startHour;
+	int endMonth;
+	int endDay;
+	int endHour;
+	double toFrameworkConversion;
+};
+
+
+//Timeseries export from framework  to SWMM functions
+int write_tsblock(FILE* swmmInputFile, FrameworkTS* tsArray, int numTimeSeries, bool hasTSBlock);
 int write_inflow_block(int totalNumOfFRWPollutants, char* targetNodeID, char** targetFRWPollutants, char** targetSWMPollutants, double* targetPollutantFactors, FILE* swmmInputFile);
 char* get_timeseriesProperties(int propertyType, char* frameworkTSName);
 
@@ -309,8 +343,11 @@ float* output_readNodeResults(float* results, int period, int nodeIndex, int num
 int input_readData2(FILE* finp, char* inputs[20]);
 int  getTokens2(char *s, char** outToks);
 char* trimwhitespace(char *str);
-int swmm_open(char* f1, char* f2, char* f3);
+//int swmm_open(char* f1, char* f2, char* f3);
 
 // Functions for converting a DateTime value to a string
 void datetime_dateToStr(DateTime date, char* s);
 void datetime_timeToStr(DateTime time, char* s);
+
+// Functions from SWMM5 source
+char* sstrncpy(char *dest, const char *src, size_t maxlen);

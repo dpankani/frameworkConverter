@@ -21,35 +21,7 @@
 #include <string>
 #include <Windows.h>
 
-struct SWMMMetaData {
-	int returnresult;
-    int fyear;
-    int fmonth;
-	int fday;
-	double fhour;
-	int tyear;
-	int tmonth;
-	int tday;
-	double thour;
-	int numread;
-	double timeStep;
-};
 
-struct FrameworkTS {
-	char* name;
-    char* description;
-	char* filePath;
-    int startMonth;
-	int startDay;
-	int startHour;
-	int endMonth;
-	int endDay;
-	int endHour;
-	char* frameworkConstituent;
-	char* swmmConstituent;
-	char* units;
-	double toFrameworkConversion;
-};
 SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants);
 
 SWMMMetaData metaFileData;
@@ -75,6 +47,7 @@ INT4 reportTimeInterv = 0;
 DateTime StartDateTime;
 
 
+
 int main()
 //int main(int argc, char* argv[])
 //  Input:   one commandline argument representing the path to the control file
@@ -88,8 +61,9 @@ int main()
 	FILE* metaFile;
 	FILE* controlFile;
 	FILE* nodeInflowTSFile;
-	//FILE* swmmInputFile;
+	FILE* swmmInputFile;
 
+	FrameworkTS* tsArray;
 	char* binaryFilePath; 
 	char* timeSeriesOutFilePath;
 	char* inputs[20];
@@ -102,6 +76,7 @@ int main()
 	char line[40];
 	//double thisTime;
 	int totalNumOfFRWPollutants = 0;
+	int tempRunStatus = -1;
 
 	//	if ( argc != 2 ){ 
 //        printf( "\nUsage: SwmmDrivers.exe \"MetafilePath\"");
@@ -196,10 +171,7 @@ int main()
 	   //return 1;
 	}
 
-	//7.) Write node inflow Timeseries file to disc
-	
-	nodeInflowTSFile = openAnyFile(tsFilePath, 1);
-	//swmmInputFile = openAnyFile(tsFilePath, 1);
+	//7.) Write [INFLOW] block to SWMM input file
 	nodeInflowTSFile = fopen(tsFilePath, "wt");
     if ( nodeInflowTSFile == NULL ){
         return 1;
@@ -209,6 +181,20 @@ int main()
 		  //do nothing
 	}
 	 fclose(nodeInflowTSFile);
+
+	 //8.) Write [TIMESERIES] block to SWMM input file
+	 tsArray = (struct FrameworkTS *) malloc(totalNumOfFRWPollutants * sizeof(struct FrameworkTS));
+	 for(int i = 0; i<totalNumOfFRWPollutants;i++){ 
+		sstrncpy(tsArray[i].name, targetSWMPollutants[i], MAXLINE);
+		sstrncpy(tsArray[i].description, "This is a test description", MAXLINE);
+		sstrncpy(tsArray[i].filePath, "c:\\SWMMDrivers\\test\\204_Temp.data", MAXLINE);
+	}
+	swmmInputFile = fopen(tsFilePath, "wt");
+    if ( swmmInputFile == NULL ){
+        return 1;
+    }
+	tempRunStatus = write_tsblock(swmmInputFile,tsArray, totalNumOfFRWPollutants, false);
+	fclose(swmmInputFile);
 	return 1;
 }
 
@@ -220,7 +206,7 @@ void report_writeLine(char *line, FILE* frpt)
 //  Purpose: writes line of text to report file.
 //
 {
-    if (frpt) fprintf(frpt, "\n  %s", line);
+    if (frpt) fprintf(frpt, "\n%s", line);
 }
 
 
@@ -840,8 +826,6 @@ int  getTokens2(char *s, char** outToks)
     return(n);
 }
 
-
-
 char* trimwhitespace(char *str)
 {
   char *end;
@@ -861,8 +845,6 @@ char* trimwhitespace(char *str)
   
   return str;
 }
-
-
 
 void datetime_dateToStr(DateTime date, char* s)
 
@@ -914,7 +896,7 @@ int write_inflow_block(int totalNumOfFRWPollutants, char* targetNodeID, char** t
 	char buffer [150];
 	char* tsParam;
 	char* tsNameSuffix = "_TimeSeries";
-	char tsName[32];
+	//char tsName[32];
 
 	/*printf("\nTotal number of pollutants: %d ",totalNumOfFRWPollutants);
 	printf("\nTotal number of pollutants: %s ",targetNodeID);
@@ -950,12 +932,12 @@ char* get_timeseriesProperties(int propertyType, char* frameworkTSName){
 //write TIMESERIES block in swmm file
 //TODO: 1 - TS block already exists and does not have TS we are about to write, append?
 //TODO: 2 - TS block already exists and already includes TS we are about to write, replace?
-int write_ts_block(FrameworkTS* tsArray){
-	char buffer [150];
-	char* tsParam;
+int write_tsblock(FILE* swmmInputFile, FrameworkTS* tsArray, int numTimeSeries, bool hasTSBlock){
+	char buffer [MAXLINE];
+	//char* tsParam;
 	char* tsNameSuffix = "_TimeSeries";
-	char tsName[32];
-	int numberOfTS = sizeof(tsArray)/sizeof(tsArray[0]);
+	//char tsName[32];
+	//int numberOfTS = sizeof(tsArray)/sizeof(tsArray[0]);
 
 	/*printf("\nTotal number of pollutants: %d ",totalNumOfFRWPollutants);
 	printf("\nTotal number of pollutants: %s ",targetNodeID);
@@ -968,10 +950,24 @@ int write_ts_block(FrameworkTS* tsArray){
 		WRITE(";;Name           Date       Time       Value     ", swmmInputFile);
 		WRITE(";;-------------- ---------- ---------- ----------", swmmInputFile);
 	}
-	for(int i = 0; i<numberOfTS;i++){ 
-		sprintf(buffer, "%s      FILE \"%s\"",tsArray[i].name, tsArray[i].filePath);
-		printf("%s", buffer);
+	for(int i = 0; i<numTimeSeries;i++){ 
+		sprintf(buffer, ";%s \n%s      FILE \"%s\" \n",tsArray[i].description,tsArray[i].name, tsArray[i].filePath);
+		printf("%s \n", buffer);
 		WRITE(buffer, swmmInputFile);
 	}
 	return 1;
+}
+
+char* sstrncpy(char *dest, const char *src, size_t maxlen)
+//
+//  Input:   dest = string to be copied to
+//           src = string to be copied from
+//           maxlen = number of characters to copy
+//  Output:  returns a pointer to dest
+//  Purpose: safe version of standard strncpy function
+//
+{
+     strncpy(dest, src, maxlen);
+     dest[maxlen] = '\0';
+     return dest;
 }
