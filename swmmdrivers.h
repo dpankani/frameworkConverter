@@ -1,4 +1,20 @@
 #include <stdio.h>
+/*#include "swmmComponents\error.h"
+#include "swmmComponents\funcs.h"
+#include "swmmComponents\text.h"*/
+
+
+#include "swmmComponents\consts.h"
+#include "swmmComponents\macros.h"
+#include "swmmComponents\enums.h"
+#include "swmmComponents\error.h"
+#include "swmmComponents\datetime.h"
+#include "swmmComponents\objects.h"
+#include "swmmComponents\funcs.h"
+#include "swmmComponents\text.h"
+#include "swmmComponents\keywords.h"
+#define  EXTERN extern
+#include "swmmComponents\globals.h"
 
 
 #define WRITE(x, y) (report_writeLine((x),y))    //From report.c
@@ -6,13 +22,13 @@
 #define MAXTOKS			40
 #define MAXLINE         1024        // Max. # characters per input line
 #define TRUE			1           // Value for TRUE state // from consts.h
-
+#define MAX_NODE_TYPES 4			// Max number of SWMM node types
 //---------------------------
 // Token separator characters
 //--------------------------- 
 #define   SEPSTR    " \t\n\r"
 
-//from Mathexpr.h
+/*//from Mathexpr.h
 //  Node in a tokenized math expression list
 struct ExprNode
 {
@@ -23,7 +39,8 @@ struct ExprNode
     struct ExprNode *next;        // next node
 };
 typedef struct ExprNode MathExpr;
-//Taken from objects.h line 36
+
+//From Object.h
 //-----------------
 // FILE INFORMATION
 //-----------------
@@ -32,11 +49,38 @@ typedef struct
    char          name[MAXFNAME+1];     // file name
    char          mode;                 // NO_FILE, SCRATCH, USE, or SAVE
    char          state;                // current state (OPENED, CLOSED)
-   //FILE         *file;                 // FILE structure pointer
+   FILE*         file;                 // FILE structure pointer
 }  TFile;
 
 
-//From Object.h
+//-----------------------------------------
+// LINKED LIST ENTRY FOR TABLES/TIME SERIES
+//-----------------------------------------
+struct  TableEntry
+{
+   double  x;
+   double  y;
+   struct  TableEntry* next;
+};
+typedef struct TableEntry TTableEntry;
+
+//-------------------------
+// CURVE/TIME SERIES OBJECT
+//-------------------------
+typedef struct
+{
+   char*         ID;              // Table/time series ID
+   int           curveType;       // type of curve tabulated
+   int           refersTo;        // reference to some other object            //(5.0.010 - LR)
+   double        dxMin;           // smallest x-value interval                 //(5.0.014 - LR)
+   double        lastDate;        // last input date for time series
+   double        x1, x2;          // current bracket on x-values
+   double        y1, y2;          // current bracket on y-values
+   TTableEntry*  firstEntry;      // first data point
+   TTableEntry*  lastEntry;       // last data point
+   TTableEntry*  thisEntry;       // current data point
+   TFile         file;            // external data file                        //(5.0.014 - LR)
+}  TTable;
 //------------------------------
 // DIRECT EXTERNAL INFLOW OBJECT
 //------------------------------
@@ -179,11 +223,9 @@ typedef struct
    double*       newQual;         // current runoff quality (mass/L)
    double*       pondedQual;      // ponded surface water quality (mass/ft3)
    double*       totalLoad;       // total washoff load (lbs or kg)
-}  TSubcatch;
+}  TSubcatch;*/
 
-
-
-//From enums.h
+/*//From enums.h
 //-------------------------------------
 // Computed node quantities
 //-------------------------------------
@@ -219,9 +261,57 @@ typedef struct
       SHAPE,                           // custom conduit shape                 //(5.0.010 - LR)
       LID,                             // LID treatment units                  //(5.0.019 - LR)
       MAX_OBJ_TYPES}; 
+//-------------------------------------
+// Names of Node sub-types
+//-------------------------------------
+ #define MAX_NODE_TYPES 4
+ enum NodeType {
+      JUNCTION,
+      OUTFALL,
+      STORAGE,
+      DIVIDER};
 
+//-------------------------------------
+// Names of Link sub-types
+//-------------------------------------
+ #define MAX_LINK_TYPES 5
+ enum LinkType {
+      CONDUIT,
+      PUMP,
+      ORIFICE,
+      WEIR,
+      OUTLET};
 
+ enum InputSectionType {
+      s_TITLE,        s_OPTION,       s_FILE,         s_RAINGAGE,
+      s_TEMP,         s_EVAP,         s_SUBCATCH,     s_SUBAREA,
+      s_INFIL,        s_AQUIFER,      s_GROUNDWATER,  s_SNOWMELT,
+      s_JUNCTION,     s_OUTFALL,      s_STORAGE,      s_DIVIDER,
+      s_CONDUIT,      s_PUMP,         s_ORIFICE,      s_WEIR,
+      s_OUTLET,       s_XSECTION,     s_TRANSECT,     s_LOSSES,
+      s_CONTROL,      s_POLLUTANT,    s_LANDUSE,      s_BUILDUP,
+      s_WASHOFF,      s_COVERAGE,     s_INFLOW,       s_DWF,
+      s_PATTERN,      s_RDII,         s_UNITHYD,      s_LOADING,
+      s_TREATMENT,    s_CURVE,        s_TIMESERIES,   s_REPORT,
+      s_COORDINATE,   s_VERTICES,     s_POLYGON,      s_LABEL,
+      s_SYMBOL,       s_BACKDROP,     s_TAG,          s_PROFILE,
+      s_MAP,          s_LID_CONTROL,  s_LID_USAGE};                            //(5.0.019 - LR)
 
+ enum InputOptionType {
+      FLOW_UNITS,        INFIL_MODEL,       ROUTE_MODEL, 
+      START_DATE,        START_TIME,        END_DATE,
+      END_TIME,          REPORT_START_DATE, REPORT_START_TIME,
+      SWEEP_START,       SWEEP_END,         START_DRY_DAYS,
+      WET_STEP,          DRY_STEP,          ROUTE_STEP,
+      REPORT_STEP,       ALLOW_PONDING,     INERT_DAMPING,
+      SLOPE_WEIGHTING,   VARIABLE_STEP,     NORMAL_FLOW_LTD,
+      LENGTHENING_STEP,  MIN_SURFAREA,      COMPATIBILITY,
+      SKIP_STEADY_STATE, TEMPDIR,           IGNORE_RAINFALL,                   //(5.0.010 - LR)
+      FORCE_MAIN_EQN,    LINK_OFFSETS,      MIN_SLOPE,                         //(5.0.014 - LR)
+      IGNORE_SNOWMELT,   IGNORE_GWATER,     IGNORE_ROUTING,                    //(5.0.014 - LR)
+      IGNORE_QUALITY};                                                         //(5.0.014 - LR)
+
+	  */
 //From output.c
 // Definition of 4-byte integer, 4-byte real and 8-byte real types             //(5.0.014 - LR)
 #define INT4  int
@@ -288,6 +378,22 @@ static const double SecsPerDay = 86400.;    // seconds per day
 #define FMT13  "\n    Cannot open report file "
 #define FMT14  "\n    Cannot open output file "
 
+/*//from globals.h
+int Nobjects[MAX_OBJ_TYPES];  // Number of each object type
+int Nnodes[MAX_NODE_TYPES];   // Number of each node sub-type
+int Nlinks[MAX_LINK_TYPES];   // Number of each link sub-type
+TTable*    Tseries;                  // Array of time series tables
+TFile Finp;                     // Input file
+TFile Fout;                     // Output file
+DateTime StartDate;                // Starting date
+DateTime StartTime;                // Starting time
+DateTime StartDateTime;            // Starting Date+Time
+DateTime EndDate;                  // Ending date
+DateTime EndTime;                  // Ending time
+DateTime EndDateTime;              // Ending Date+Time
+                  //ReportStartDate,          // Report start date
+                 // ReportStartTime,          // Report start time
+                  //ReportStart;              // Report start Date+Time*/
 
 //SWMM Driver Data Structures
 struct SWMMMetaData {
@@ -320,6 +426,8 @@ struct FrameworkTS {
 	double toFrameworkConversion;
 };
 
+	//Begin definitions for input.c
+//int ErrorCode = 0;
 
 //Timeseries export from framework  to SWMM functions
 int write_tsblock(FILE* swmmInputFile, FrameworkTS* tsArray, int numTimeSeries, bool hasTSBlock);
@@ -338,7 +446,8 @@ int isLeapYear(int year);
 void divMod(int n, int d, int* result, int* remainder);
 FILE* openAnyFile(char *f1, int type);
 void  writecon(char *s);
-int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int*);
+//int output_open(FILE * fout, FILE* ftimeSeries, char** inputs, int*);
+SWMMMetaData output_open(FILE* fcontrol, FILE* fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants);
 float* output_readNodeResults(float* results, int period, int nodeIndex, int numNodeResults, int numSubCatchs, int numSubCatchRslts, int outputStartPos, int bytesPerPeriod, FILE* fout);
 int input_readData2(FILE* finp, char* inputs[20]);
 int  getTokens2(char *s, char** outToks);

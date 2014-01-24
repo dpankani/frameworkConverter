@@ -81,10 +81,26 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="swmmComponents\consts.h" />
+    <ClInclude Include="swmmComponents\datetime.h" />
+    <ClInclude Include="swmmComponents\enums.h" />
+    <ClInclude Include="swmmComponents\error.h" />
+    <ClInclude Include="swmmComponents\funcs.h" />
+    <ClInclude Include="swmmComponents\globals.h" />
+    <ClInclude Include="swmmComponents\headers.h" />
+    <ClInclude Include="swmmComponents\infil.h" />
+    <ClInclude Include="swmmComponents\keywords.h" />
+    <ClInclude Include="swmmComponents\lid.h" />
+    <ClInclude Include="swmmComponents\macros.h" />
+    <ClInclude Include="swmmComponents\mathexpr.h" />
+    <ClInclude Include="swmmComponents\objects.h" />
+    <ClInclude Include="swmmComponents\text.h" />
     <ClInclude Include="swmmdrivers.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="input.cpp" />
+    <ClCompile Include="keywords.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

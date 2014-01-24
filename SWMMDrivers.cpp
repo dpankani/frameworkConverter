@@ -21,13 +21,21 @@
 #include <string>
 #include <Windows.h>
 
+//-----------------------------------------------------------------------------
+//  Shared variables
+//-----------------------------------------------------------------------------
+static char *Tok[MAXTOKS];             // String tokens from line of input
+static int  Ntokens;                   // Number of tokens in line of input
+//static int  Mobjects[MAX_OBJ_TYPES];   // Working number of objects of each type
+static int  Mnodes[MAX_NODE_TYPES];    // Working number of node objects
+//static int  Mlinks[MAX_LINK_TYPES];    // Working number of link objects
 
-SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants);
+//*SWMMMetaData output_open(FILE* fcontrol, FILE * fout, FILE* ftimeSeries, char** inputs, int* targetPollutantSWMMOrder, int totalNumOfFRWPollutants);
 
 SWMMMetaData metaFileData;
 
-int ErrorCode;
-int Nobjects[MAX_OBJ_TYPES];			// Number of each object type
+//int ErrorCode;
+//int Nobjects[MAX_OBJ_TYPES];			// Number of each object type
 TNode*     Node;						// Array of nodes // from globals.h
 TPollut*   Pollut;						// Array of pollutants
 long Nperiods;							// Number of reporting periodstypedef double DateTime;  //Taken from datetime.h
@@ -44,7 +52,7 @@ int totalNumOfMatchedFRWPollutants = 0;
 int targetNodeIndex = 0;
 REAL8 reportStartDate = 0.0;
 INT4 reportTimeInterv = 0;
-DateTime StartDateTime;
+//DateTime StartDateTime;
 
 
 
@@ -140,6 +148,7 @@ int main()
 
 	//5.) do conversion of series (read series from SWMM, write it to scratch file)
 	metaFileData = output_open(controlFile, binaryFile, timeSeriesOutFile, inputs, targetPollutantSWMMOrder, totalNumOfFRWPollutants);
+
 
 	//6.) create the return metadata file
 	if(metaFileData.returnresult == 0){ 
@@ -971,3 +980,28 @@ char* sstrncpy(char *dest, const char *src, size_t maxlen)
      dest[maxlen] = '\0';
      return dest;
 }
+
+/*int main(int argc, char **argv) {
+    FILE *fp;
+    FILE *tmp = tmpfile();
+    char *p;
+    char *more = "foo";
+    char line[1024];
+    // First put contents of file into temporary file 
+    fp = fopen("file.txt", "r");
+    while ((p = fgets(line, 1024, fp))!=NULL) {
+        fputs(line, tmp);
+    }
+    fclose(fp);
+    rewind(tmp);
+   // Reopen file now with write permissions 
+    fopen("file.txt", "w");
+    while (( p = fgets(line, 1024, tmp))!=NULL) {
+        line[strlen(line)-1] = '\0'; // Clear away newline 
+        sprintf(line, "%s %s\n", line, more);
+        fputs(line, fp);
+    }
+    fclose(fp);
+    fclose(tmp);
+    return 0;
+}*/

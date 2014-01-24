@@ -28,12 +28,60 @@
     <ClInclude Include="swmmdrivers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="swmmComponents\error.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\text.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\funcs.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\consts.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\datetime.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\enums.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\globals.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\headers.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\macros.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\objects.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\infil.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\mathexpr.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\keywords.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swmmComponents\lid.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SWMMDrivers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="keywords.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
